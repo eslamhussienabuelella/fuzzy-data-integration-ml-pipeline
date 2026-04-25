@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+.ipynb_checkpoints/
+.DS_Store
+Thumbs.db
+
+# local raw data
+data/raw/*
+!data/raw/README.md
+
+# temporary outputs
+outputs/
+*.log
