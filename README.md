@@ -1,3 +1,7 @@
+
+![Python](https://img.shields.io/badge/Python-3.x-blue)
+![Pandas](https://img.shields.io/badge/Pandas-Data%20Processing-green)
+![Jupyter](https://img.shields.io/badge/Jupyter-Notebook-orange)
 # Fuzzy Data Integration ML Pipeline
 
 A reproducible data-engineering pipeline for integrating Canadian vehicle fuel-consumption records with detailed vehicle specification datasets using token-based fuzzy matching and Jaccard similarity.
