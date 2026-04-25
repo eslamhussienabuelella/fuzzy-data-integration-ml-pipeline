@@ -1,7 +1,7 @@
-
 ![Python](https://img.shields.io/badge/Python-3.x-blue)
 ![Pandas](https://img.shields.io/badge/Pandas-Data%20Processing-green)
 ![Jupyter](https://img.shields.io/badge/Jupyter-Notebook-orange)
+
 # Fuzzy Data Integration ML Pipeline
 
 A reproducible data-engineering pipeline for integrating Canadian vehicle fuel-consumption records with detailed vehicle specification datasets using token-based fuzzy matching and Jaccard similarity.
@@ -202,6 +202,45 @@ Higher overlap indicates stronger similarity.
 
 ---
 
+## Example fuzzy match
+
+Example of how the matching logic resolves inconsistent naming:
+
+**Fuel-consumption record**
+
+```text
+Acura TL AWD 3.7 V6
+```
+
+**Vehicle specification record**
+
+```text
+TL AWD Sedan 4dr
+```
+
+**Tokenised comparison**
+
+```text
+Fuel tokens:        {tl, awd, 3.7, v6}
+Specification tokens: {tl, awd, sedan, 4dr}
+```
+
+**Shared tokens**
+
+```text
+{tl, awd}
+```
+
+**Jaccard similarity**
+
+```text
+2 / 6 = 0.33
+```
+
+This demonstrates how fuzzy matching identifies likely matches even when naming formats differ.
+
+---
+
 ## 5. Best-match selection logic
 
 Candidate matches are resolved using ordered tie-breaking:
@@ -247,6 +286,21 @@ data/processed/missing_vehicles.csv
 
 ---
 
+## Matching performance
+
+Pipeline performance summary:
+
+| Metric | Value |
+|---|---:|
+| Total fuel-consumption records | 13,601 |
+| Successfully matched | 12,895 |
+| Unmatched | 706 |
+| Matching success rate | 94.8% |
+
+The high matching rate demonstrates robust fuzzy-integration performance despite inconsistent naming structures.
+
+---
+
 ## Final dataset summary
 
 Processed integrated dataset:
@@ -256,7 +310,6 @@ Processed integrated dataset:
 | Rows | 12,895 |
 | Columns | 33 |
 | Model years | 2011–2023 |
-| Unmatched records | 706 |
 
 ---
 
