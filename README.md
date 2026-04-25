@@ -1,19 +1,52 @@
 # Fuzzy Data Integration ML Pipeline
 
-A reproducible data-construction pipeline for integrating Canadian vehicle fuel-consumption records with vehicle specification data using token-based fuzzy matching.
+A reproducible data-engineering pipeline for integrating Canadian vehicle fuel-consumption records with detailed vehicle specification datasets using token-based fuzzy matching and Jaccard similarity.
 
-This repository supports the data preparation stage of the project:
+This project demonstrates practical **data engineering**, **data quality assurance**, and **fuzzy entity resolution** techniques to construct a machine-learning-ready dataset from heterogeneous public data sources.
+
+This repository supports the data preparation stage of the MSc thesis:
 
 > **Explainable and Constraint-Aware Machine Learning for Robust Vehicle Fuel Consumption Prediction**
 
+---
+
 ## Project overview
 
-The pipeline integrates two independent data sources:
+Machine learning performance depends heavily on data quality and feature completeness. This project integrates two independent public datasets into a unified analytical dataset for downstream machine learning.
 
-1. **Fuel consumption ratings** containing vehicle efficiency metrics and basic descriptors.
-2. **Vehicle specification files** containing detailed design, geometry, and mass measurements.
+The pipeline integrates:
 
-Because vehicle names and descriptions are not formatted consistently across the two sources, the workflow applies text normalisation, tokenisation, fuzzy matching, quality control, and final dataset standardisation.
+1. **Fuel consumption ratings dataset**  
+   Contains fuel-efficiency measurements and CO₂ emission records.
+
+2. **Vehicle specification dataset**  
+   Contains vehicle design, geometry, and mass-related technical specifications.
+
+Because vehicle naming conventions differ across sources, direct joins are unreliable. This pipeline resolves those inconsistencies through text standardisation and token-based fuzzy matching.
+
+---
+
+## Why this project matters
+
+Real-world datasets often contain:
+
+- inconsistent naming conventions;
+- incomplete identifiers;
+- heterogeneous formatting;
+- duplicated or weak descriptive tokens.
+
+This project demonstrates practical solutions for:
+
+- multi-source data integration;
+- fuzzy entity resolution;
+- text normalisation;
+- quality-control validation;
+- reproducible dataset construction;
+- machine-learning data preparation.
+
+These are core data-engineering tasks in production machine learning workflows.
+
+---
 
 ## Repository structure
 
@@ -28,114 +61,247 @@ fuzzy-data-integration-ml-pipeline/
 │   └── Data_Construction_Logic.ipynb
 │
 ├── data/
-│   ├── processed/
-│   │   ├── fc_veh_spec_all.csv
-│   │   └── missing_vehicles.csv
-│   └── raw/
-│       └── README.md
+│   ├── raw/
+│   │   ├── README.md
+│   │   ├── fuel_consumption_ratings/
+│   │   │   ├── my1995-2014-fuel-consumption-ratings-5-cycle.csv
+│   │   │   └── my2015-2024-fuel-consumption-ratings.csv
+│   │   │
+│   │   └── vehicle_specifications/
+│   │       ├── 2011_en.csv
+│   │       ├── 2012_en.csv
+│   │       ├── 2013_en.csv
+│   │       ├── 2014_en.csv
+│   │       ├── 2015_en.csv
+│   │       ├── 2016_en.csv
+│   │       ├── 2017_en.csv
+│   │       ├── 2018_en.csv
+│   │       ├── 2019_en.csv
+│   │       ├── 2020_en.csv
+│   │       ├── 2021_en.csv
+│   │       ├── 2022_en.csv
+│   │       └── 2023_en.csv
+│   │
+│   └── processed/
+│       ├── fc_veh_spec_all.csv
+│       └── missing_vehicles.csv
 │
 └── docs/
     └── Data_constuction_logic.docx
 ```
 
+---
+
+## Workflow architecture
+
+```text
+Fuel consumption data + Vehicle specification data
+                     ↓
+             Text normalisation
+                     ↓
+               Tokenisation
+                     ↓
+          Jaccard similarity matching
+                     ↓
+            Tie-breaking logic
+                     ↓
+             Quality-control checks
+                     ↓
+          Final integrated dataset
+```
+
+---
+
 ## Workflow summary
 
-### 1. Load raw datasets
+## 1. Load raw datasets
 
-The notebook loads two fuel-consumption rating datasets, filters them to model years **2011–2023**, and dynamically reads yearly vehicle specification CSV files for the same period.
+The notebook loads:
 
-### 2. Standardise text fields
+- fuel-consumption rating datasets;
+- yearly vehicle specification datasets.
 
-Vehicle names are cleaned to reduce formatting differences between sources:
+The analysis is restricted to:
 
-- lower-case conversion;
-- punctuation and special-character handling;
-- category harmonisation, such as `4 door` → `4dr` and `sport utility vehicle` → `suv`;
-- removal of weak marketing tokens, such as `technology`, `tech`, and `package`.
+```text
+Model years: 2011–2023
+```
 
-### 3. Build token keys
+to ensure overlap between both sources.
 
-Each fuel-consumption record is represented using tokens derived from:
+This repository includes both raw input datasets and processed outputs for full reproducibility.
 
-- model name;
-- engine size;
-- vehicle class;
-- cylinder configuration.
+---
 
-Vehicle specification records are similarly tokenised after cleaning their model descriptions.
+## 2. Standardise text fields
 
-### 4. Apply Jaccard similarity
+Vehicle names and descriptors are cleaned to reduce formatting inconsistencies.
 
-For each fuel-consumption vehicle, candidate specification records are restricted to the same **make** and **model year**. Token overlap is then scored using Jaccard similarity:
+Standardisation includes:
+
+- lowercase conversion
+- punctuation removal
+- whitespace normalisation
+- synonym harmonisation
+
+Examples:
+
+```text
+4 door → 4dr
+sport utility vehicle → suv
+```
+
+Weak marketing terms are removed:
+
+```text
+technology
+tech
+package
+limited
+premium
+```
+
+---
+
+## 3. Build token keys
+
+Each fuel-consumption record is transformed into token sets using:
+
+- model name
+- engine size
+- vehicle class
+- cylinder count
+
+Vehicle specification records undergo the same tokenisation logic.
+
+---
+
+## 4. Apply Jaccard similarity
+
+Matching is restricted to records with the same:
+
+- manufacturer (make)
+- model year
+
+Candidate matches are scored using:
 
 ```text
 Jaccard similarity = |A ∩ B| / |A ∪ B|
 ```
 
-where `A` is the fuel-consumption token set and `B` is the vehicle-specification token set.
+Where:
 
-### 5. Select the best match
+- `A` = fuel-consumption token set
+- `B` = vehicle specification token set
 
-The best candidate is selected using the following ordered rules:
+Higher overlap indicates stronger similarity.
 
-1. highest Jaccard similarity;
-2. strongest shared tokens;
-3. largest token intersection;
-4. smallest token union.
+---
 
-### 6. Quality control
+## 5. Best-match selection logic
 
-The pipeline validates the joined dataset through:
+Candidate matches are resolved using ordered tie-breaking:
 
-- vehicle make consistency checks;
-- non-empty token-intersection checks;
-- tie-case review;
-- removal of mismatched manufacturer records.
+1. highest Jaccard similarity  
+2. largest token intersection  
+3. smallest token union  
+4. strongest semantic overlap  
 
-### 7. Export final dataset
+This improves matching robustness.
 
-The final integrated dataset is exported as:
+---
+
+## 6. Quality-control validation
+
+Integrated records are validated using:
+
+- make consistency checks
+- empty-intersection checks
+- duplicate match inspection
+- tie-case review
+- manual mismatch filtering
+
+This reduces noisy joins and improves final data quality.
+
+---
+
+## 7. Export final dataset
+
+Final outputs:
+
+**Integrated dataset**
 
 ```text
 data/processed/fc_veh_spec_all.csv
 ```
 
-A separate file of unmatched records is retained as:
+**Unmatched records**
 
 ```text
 data/processed/missing_vehicles.csv
 ```
 
-## Final dataset
+---
 
-The processed dataset contains integrated fuel-consumption and vehicle-specification attributes.
+## Final dataset summary
 
-Current processed output from the attached data:
+Processed integrated dataset:
 
-- **Rows:** 12,895
-- **Columns:** 33
-- **Model years:** 2011–2023
-- **Unmatched vehicle records:** 706
+| Metric | Value |
+|---|---:|
+| Rows | 12,895 |
+| Columns | 33 |
+| Model years | 2011–2023 |
+| Unmatched records | 706 |
 
-Main feature groups include:
+---
 
-- fuel-consumption variables: city, highway, combined fuel consumption, CO₂ emissions;
-- mechanical variables: engine size, cylinders, transmission, fuel type;
-- geometry variables: overall length, width, height, wheelbase, overhangs, track widths;
-- mass variables: curb weight and weight distribution.
+## Main feature groups
+
+### Fuel-consumption features
+
+- city fuel consumption
+- highway fuel consumption
+- combined fuel consumption
+- CO₂ emissions
+
+### Mechanical features
+
+- engine size
+- cylinders
+- transmission
+- fuel type
+
+### Geometry features
+
+- overall length
+- overall width
+- overall height
+- wheelbase
+- overhangs
+- track widths
+
+### Mass features
+
+- curb weight
+- weight distribution
+
+---
 
 ## Key files
 
 | File | Description |
 |---|---|
-| `notebooks/Data_Construction_Logic.ipynb` | Main notebook implementing the full data construction workflow |
-| `docs/Data_constuction_logic.docx` | Written explanation of the data construction procedure |
+| `notebooks/Data_Construction_Logic.ipynb` | Full implementation of the integration workflow |
+| `docs/Data_constuction_logic.docx` | Detailed workflow documentation |
 | `data/processed/fc_veh_spec_all.csv` | Final integrated dataset |
-| `data/processed/missing_vehicles.csv` | Fuel-consumption records without reliable specification matches |
+| `data/processed/missing_vehicles.csv` | Unmatched vehicle records |
 
-## Requirements
+---
 
-Install the required Python packages with:
+## Installation
+
+Install dependencies:
 
 ```bash
 pip install -r requirements.txt
@@ -149,7 +315,9 @@ Core packages:
 - seaborn
 - jupyter
 
-## How to run
+---
+
+## Reproducibility
 
 Clone the repository:
 
@@ -158,11 +326,20 @@ git clone https://github.com/eslamhussienabuelella/fuzzy-data-integration-ml-pip
 cd fuzzy-data-integration-ml-pipeline
 ```
 
-Create and activate an environment:
+Create environment:
+
+### Windows
 
 ```bash
 python -m venv .venv
 .venv\Scripts\activate
+```
+
+### Linux/macOS
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
 ```
 
 Install dependencies:
@@ -171,11 +348,26 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
-Open the notebook:
+Launch notebook:
 
 ```bash
 jupyter notebook notebooks/Data_Construction_Logic.ipynb
 ```
+
+---
+
+## Skills demonstrated
+
+- Data integration
+- Fuzzy matching
+- Entity resolution
+- Data cleaning
+- Feature engineering
+- Quality assurance (QA/QC)
+- Reproducible pipelines
+- Machine-learning data preparation
+
+---
 
 ## Recommended GitHub topics
 
@@ -183,21 +375,27 @@ jupyter notebook notebooks/Data_Construction_Logic.ipynb
 data-integration
 fuzzy-matching
 jaccard-similarity
+entity-resolution
 data-cleaning
-pandas
+data-engineering
+machine-learning
+feature-engineering
 vehicle-data
-fuel-consumption
-machine-learning-pipeline
-data-quality
 python
 ```
 
-## Suggested repository description
+---
 
-> Token-based fuzzy data integration pipeline linking Canadian fuel-consumption records with vehicle specification data using text normalisation, Jaccard similarity, and quality-control checks.
+## Repository description
+
+Token-based fuzzy data integration pipeline linking Canadian fuel-consumption and vehicle specification datasets using text normalisation, Jaccard similarity, and quality-control validation.
+
+---
 
 ## Author
 
 **Eslam H. M. Abuelella**  
-MSc Data Science, Coventry University  
-Geospatial Data Scientist / GIS & ML practitioner
+MSc Data Science — Coventry University  
+MSc Geology — Cairo University  
+
+Machine Learning | Data Engineering | Geospatial Analytics | Earth Systems Modelling
